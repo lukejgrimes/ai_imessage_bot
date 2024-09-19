@@ -43,7 +43,7 @@ class Chat:
 
     
     def send_text(self, new_message: Message) -> None:
-        safe_content = new_message.content.replace('"', '\\"').replace("'", "''")
+        safe_content = new_message.content.replace('"', '\\"')
         applescript = f'''
         tell application "Messages"
             set targetChat to chat id "{self.id}"

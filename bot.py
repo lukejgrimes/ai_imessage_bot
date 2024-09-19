@@ -2,9 +2,11 @@ from openai import OpenAI
 from chat import Chat
 from message import Message
 import os
+from dotenv import load_dotenv
 
 class Bot:
     def __init__(self, chat: Chat) -> None:
+        load_dotenv()
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.chat = chat
 
