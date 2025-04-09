@@ -37,8 +37,12 @@ class Chat:
             """
         cursor.execute(query)
         res = cursor.fetchone()
-        text_message = res[0]
-        sender = res[1]
+        try: 
+            text_message = res[0]
+            sender = res[1]
+        except Exception:
+            text_message = ""
+            sender = ""
         return Message(sender=sender, content=text_message)
 
     

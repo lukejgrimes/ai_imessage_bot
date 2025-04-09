@@ -8,16 +8,27 @@ from db import get_db_cursor
 cursor = get_db_cursor()
 
 def get_chats():
-    query = """
-        SELECT guid FROM chat;
-    """
+    chat_query = "SELECT ROWID, guid FROM chat;"
+    cursor.execute(chat_query)
+    chat_rows = cursor.fetchall()
 
-    cursor.execute(query)
-    chat_list = cursor.fetchall()
-    for i in range(len(chat_list)):
-        print(f"{i}: {chat_list[i][0]}")
+    chat_info = [chat_row[1] for chat_row in  chat_rows]
 
-    return chat_list
+    for i, (chat_id, guid) in enumerate(chat_rows):
+        participant_query = """
+            SELECT handle.id
+            FROM chat_handle_join
+            JOIN handle ON handle.ROWID = chat_handle_join.handle_id
+            WHERE chat_handle_join.chat_id = ?
+        """
+        cursor.execute(participant_query, (chat_id,))
+        participants = [row[0] for row in cursor.fetchall()]
+
+        participants_str = ", ".join(participants) if participants else "Unknown"
+
+        print(f"{i}: Participants: {participants_str}")
+
+    return chat_info
 
 def set_names(chat_id):
     query = f"""
@@ -43,11 +54,12 @@ run = True
 
 while(run):
     print("Welcome to AI Text Message Bot!")
-    input("Press enter to start")
+    mode = int(input("Input 0 for standard, 1 for RobGPT: "))
+
     chats = get_chats()
 
     chat_number = input("Select a chat for which you'd like to start a bot:\n")
-    selected_chat = chats[int(chat_number)][0]
+    selected_chat = chats[int(chat_number)]
 
     contacts = set_names(selected_chat)
 
@@ -56,21 +68,24 @@ while(run):
 
     chat_context += f"The people in the chat and their corresponding numbers are: {contacts.items()}"
 
-    current_chat = Chat(id=selected_chat, context=chat_context) # Initialize chat
+    current_chat = Chat(id=selected_chat, context=chat_context)
     send_first_text = input("Do you want to send the first text?(Y/n): ")
     send_first_text = True if send_first_text == 'Y' or send_first_text == 'y' else False
     start = input("Are you ready to start the bot? (Y/n): ")
 
-    bot = Bot(current_chat)
+    bot = Bot(current_chat, mode)
+    if mode == 1:
+        print("ROB MODE")
 
     last_message = current_chat.get_last_message(cursor) if not send_first_text else None
     last_text = last_message.content if last_message else "First text"
+
     while True:
         if current_chat.get_last_message(cursor).content != last_text:
             last_message = current_chat.get_last_message(cursor)
             last_text = last_message.content
             res = bot.create_response(last_message)
             current_chat.send_text(Message(sender="Me", content=res))
-        time.sleep(10)
+        time.sleep(5)
 
 
